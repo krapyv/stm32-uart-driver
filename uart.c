@@ -45,10 +45,7 @@ void usart2_init()
     // initialize the ring buffer
     ring_buffer_init(&rx_buffer, raw_rx_storage, 16);
 
-    // first of all, enable RCC clocks for GPIOA (bit 0) and USART (bit 17)
-    RCC->AHB1ENR |= 1; // keep all existing bits and set the bit 0 to 1
-
-    RCC->APB1ENR |= (1 << 17); // keep all existing bits and set the bit 17 to 1
+    USART2_ENABLE_CLK();
 
     // next, set the GPIOA_MODER to AF (10 or 0x2)
     // since we are using PA2 and PA3, we need to set bits 2-3 and 4-5

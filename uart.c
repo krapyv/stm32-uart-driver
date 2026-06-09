@@ -50,24 +50,7 @@ void usart2_init()
     // next, set the GPIOA_MODER to AF (10 or 0x2)
     // since we are using PA2 and PA3, we need to set bits 2-3 and 4-5
 
-    // clear the existing bits 4-5 and 6-7 inside the MODER
-    GPIOA->MODER &= ~((0x3 << 6) | (0x3 << 4)); // 0x3 = 0b00000011
-    // in ((0x3 << 6) | (0x3 << 4)) we are going to have 0b.....11110000
-    // after the inversion (~), the result will be 0b1111....00001111
-    // after ANDing with GPIOA_MODER, its bits 4-5 and 6-7 are cleared (AND gives 1 only when two inputs are 1)
-
-    // set bits 6-7 and 4-5 to desired value (10)
-    GPIOA->MODER |= (0x2 << 6) | (0x2 << 4);
-
-    // According to the Referrence Manual, for USART1/2 we are using AF7
-    // set the bits 8-11 and 12-15 of GPIOA_AFRL to 0111 (AF7)
-
-    // 0x7 = 0b0111 in binary
-
-    // firstly, let's clear the existing bits
-    GPIOA->AFRL &= ~((0xF << 12) | (0xF << 8));
-
-    GPIOA->AFRL |= (0x7 << 12) | (0x7 << 8); // the bits are set
+    USART2_INIT_GPIO();
 
     // now we need to initialize USART registers
 

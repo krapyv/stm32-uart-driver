@@ -6,6 +6,10 @@
 #include "core_cm4.h"
 #include "ring_buffer.h"
 
+#ifdef USE_APP_CONFIG
+#include "app_config.h"
+#endif
+
 #ifndef USART2_CLK_MANAGED_EXTERNALLY
 #define USART2_ENABLE_CLK()         \
     do                              \

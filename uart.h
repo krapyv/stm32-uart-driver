@@ -10,11 +10,23 @@
 #include "app_config.h"
 #endif
 
+/* FALLBACK SAFE DEFAULTS */
+#ifndef TARGET_UART_MODE
+#define TARGET_UART_MODE 2U
+#endif
+
+#ifndef TARGET_UART_BRR
+// for my 16 MHz processor clock: USARTDIV  = 8.6805 => Mantissa (integer part)  = 8 = 0x8
+// fraction = 0.6805 * 16 = 10.88 => rounded to 11 = 0xB
+// the resulting USART_BRR = 0x008B
+#define TARGET_UART_BRR 0x008BUL
+#endif
+
 #ifndef USART2_CLK_MANAGED_EXTERNALLY
 #define USART2_ENABLE_CLK()         \
     do                              \
     {                               \
-        RCC->AHB1ENR |= 1U;         \
+        RCC->AHB1ENR |= (1U << 0);  \
         RCC->APB1ENR |= (1U << 17); \
     } while (0)
 #else

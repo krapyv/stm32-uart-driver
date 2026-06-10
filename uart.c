@@ -1,5 +1,6 @@
 #include "uart.h"
 
+#if ((TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX))
 RingBuffer_t rx_buffer;
 uint8_t raw_rx_storage[16];
 
@@ -39,12 +40,15 @@ void USART2_IRQHandler(void)
         }
     }
 }
+#endif
 
 void usart2_init()
 {
-    // initialize the ring buffer
-    ring_buffer_init(&rx_buffer, raw_rx_storage, 16);
+#if ((TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX))
 
+    // initialize the ring buffer
+    (void)ring_buffer_init(&rx_buffer, raw_rx_storage, 16);
+#endif
     USART2_ENABLE_CLK();
 
     // next, set the GPIOA_MODER to AF (10 or 0x2)
@@ -56,16 +60,24 @@ void usart2_init()
 
     // according to the formula USARTDIV = clock frequency / 8 * (2 - OVER8) * Baud Rate
 
-    // for my 16 MHz processor clock: USARTDIV  = 8.6805 => Mantissa (integer part)  = 8 = 0x8
-    // fraction = 0.6805 * 16 = 10.88 => rounded to 11 = 0xB
-    // the resulting USART_BRR = 0x008B
+    USART2->BRR = TARGET_UART_BRR;
 
-    USART2->BRR = 0x008B;
+    // USART enabling
+    uint32_t cr1_config = (1UL << 13U);
 
+#if (TARGET_UART_MODE == UART_MODE_TX_ONLY)
+    cr1_config |= (1UL << 3U); // TE
+#elif (TARGET_UART_MODE == UART_MODE_RX_ONLY)
+    cr1_config |= (1UL << 5U) | (1UL << 2U); // RXNEIE, RX
+#elif (TARGET_UART_MODE == UART_MODE_TX_RX)
+    cr1_config |= (1U << 5UL) | (1UL << 3U) | (1UL << 2U);
+#endif
     // enabling USART, RXNEIE, TE, RE
-    USART2->CR[0] |= (1 << 13) | (1 << 5) | (1 << 3) | (1 << 2);
+    USART2->CR[0] = cr1_config;
 
-    NVIC->ISER[1] = (1 << 6); // bit 6 is responsible for the interrupt position 38
+#if (TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX)
+    NVIC->ISER[1] = (1UL << 6U); // bit 6 is responsible for the interrupt position 38
+#endif
 }
 
 void usart2_write_char(char c)

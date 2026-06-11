@@ -51,8 +51,10 @@
     {                      \
     } while (0)
 #endif
-void usart2_init();
+
+void usart2_init(void);
 void usart2_write_char(char c);
 void usart2_write_string(char *string, int len);
+uint8_t usart2_stream_dma(uint16_t *buffer_ptr, uint32_t sample_count);
 
 #endif

@@ -10,13 +10,13 @@ void USART2_IRQHandler(void)
 
     // first of all, check whether the interrupt has been caused by the receiver
     // for this, check bit 5 RXNE of USART2_SR (if 1 - Received data is ready to be read, 0 - data is not received)
-    if (sr_snapshot & (1 << 5))
+    if (sr_snapshot & (1UL << 5U))
     {
         // if the result > 0 (true), then the bit is 1
         uint8_t temp = (uint8_t)USART2->DR; // explicitly converting 32-bit sequence to 8 bit
 
         // check for FE (Frame Error) to prevent saving a corrupt (de-synchronized) data
-        if (!(sr_snapshot & (1 << 1)))
+        if (!(sr_snapshot & (1UL << 1U)))
         {
             ring_buffer_push(&rx_buffer, temp);
         }
@@ -29,11 +29,11 @@ void USART2_IRQHandler(void)
 
     // we do not care which EXACTLY error bit (ORE or FE) has been set
     // in either case we are going to read SR (already done at the top) and DR
-    if (sr_snapshot & ((1 << 3) | (1 << 1)))
+    if (sr_snapshot & ((1UL << 3U) | (1UL << 1U)))
     {
         // we are reading USART2_DR only when the first block of code has not been executed
         // but even without that if block and with unconditional reading of DR register, it would be completely fine (because DR has been clearned or has stale data)
-        if (!(sr_snapshot & (1 << 5)))
+        if (!(sr_snapshot & (1UL << 5U)))
         {
             volatile uint32_t clear = USART2->DR;
             (void)clear; // to prevent the compiler from warning about this unused var
@@ -82,7 +82,7 @@ void usart2_init()
 
 void usart2_write_char(char c)
 {
-    while (!(USART2->SR & (1 << 7)))
+    while (!(USART2->SR & (1UL << 7U)))
     {
     }
 
@@ -95,7 +95,7 @@ void usart2_write_string(char *string, int len)
     // if len is negative (-1), fall back to standard null-terminator string tracking
 
     int i = 0;
-    while ((len >= 0 && i < len) || (len < 0 && string[i] != '\0'))
+    while ((len >= 0U && i < len) || (len < 0U && string[i] != '\0'))
     {
         if (string[i] == '\n')
         {
@@ -104,6 +104,30 @@ void usart2_write_string(char *string, int len)
         usart2_write_char(string[i]);
         i++;
     }
+}
+
+uint8_t usart2_stream_dma(uint16_t *buffer_ptr, uint32_t sample_count)
+{
+    // non-blocking guard: if the previous transfer is still running, exit immediately
+    if ((DMA1->S6CR & (1UL << 0U)) != 0UL)
+    {
+        return 0U; // failure
+    }
+
+    // clear transmission complete flag for DMA1 Stream 6
+    DMA1->HIFCR = (1UL << 21U) | (1UL << 19U) | (1UL << 18U) | (1UL << 16U);
+
+    DMA1->S6M0AR = (uint32_t)buffer_ptr;
+    DMA1->S6NDTR = sample_count * sizeof(uint16_t);
+
+    __DMB();
+
+    // enable the DMAT bit
+    USART2->CR[2] |= (1UL << 7U);
+    // enable the EN bit
+    DMA1->S6CR |= (1UL << 0U);
+
+    return 1U; // success
 }
 
 int _write(int file, char *ptr, int len)

@@ -1,4 +1,7 @@
 #include "uart.h"
+#include <stdio.h>
+
+uint16_t *volatile current_uart_dma_buffer = NULL;
 
 #if ((TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX))
 RingBuffer_t rx_buffer;
@@ -114,11 +117,13 @@ uint8_t usart2_stream_dma(uint16_t *buffer_ptr, uint32_t sample_count)
         return 0U; // failure
     }
 
+    current_uart_dma_buffer = buffer_ptr;
+
     // clear transmission complete flag for DMA1 Stream 6
     DMA1->HIFCR = (1UL << 21U) | (1UL << 19U) | (1UL << 18U) | (1UL << 16U);
 
     DMA1->S6M0AR = (uint32_t)buffer_ptr;
-    DMA1->S6NDTR = sample_count * sizeof(uint16_t);
+    DMA1->S6NDTR = sample_count;
 
     __DMB();
 

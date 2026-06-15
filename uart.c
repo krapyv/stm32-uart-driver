@@ -1,8 +1,6 @@
 #include "uart.h"
 #include <stdio.h>
 
-uint16_t *volatile current_uart_dma_buffer = NULL;
-
 #if ((TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX))
 RingBuffer_t rx_buffer;
 uint8_t raw_rx_storage[16];
@@ -111,28 +109,33 @@ void usart2_write_string(char *string, int len)
 
 uint8_t usart2_stream_dma(uint16_t *buffer_ptr, uint32_t sample_count)
 {
-    // non-blocking guard: if the previous transfer is still running, exit immediately
-    if ((DMA1->S6CR & (1UL << 0U)) != 0UL)
+    // 1. Guard: DMA must be disabled AND (either USART is idle OR this is the very first boot transfer)
+    // Note: If you want to bypass the boot deadlock elegantly, you can just check if the line is not actively shifting
+    if ((DMA1->S6CR & (1UL << 0U)) == 0UL)
     {
-        return 0U; // failure
+        // Clear all DMA1 Stream 6 interrupt status flags (TCIF, TEIF, etc.)
+        DMA1->HIFCR = (1UL << 21U) | (1UL << 19U) | (1UL << 18U) | (1UL << 16U);
+
+        // 2. Clear the USART TC flag manually before re-arming the DMA channel.
+        // On STM32F4, the TC flag is cleared by a software sequence:
+        // reading USART_SR followed by a write to USART_DR, OR you can clear it directly by writing 0 to it.
+        USART2->SR &= ~(1UL << 6U);
+
+        // Set up DMA addresses and counts
+        DMA1->S6M0AR = (uint32_t)buffer_ptr;
+        DMA1->S6NDTR = sample_count;
+
+        __DMB();
+
+        // Enable the DMAT (DMA Transmit) bit in USART_CR3
+        USART2->CR[2] |= (1UL << 7U);
+
+        // Fire the stream!
+        DMA1->S6CR |= (1UL << 0U);
+
+        return 1U; // success
     }
-
-    current_uart_dma_buffer = buffer_ptr;
-
-    // clear transmission complete flag for DMA1 Stream 6
-    DMA1->HIFCR = (1UL << 21U) | (1UL << 19U) | (1UL << 18U) | (1UL << 16U);
-
-    DMA1->S6M0AR = (uint32_t)buffer_ptr;
-    DMA1->S6NDTR = sample_count;
-
-    __DMB();
-
-    // enable the DMAT bit
-    USART2->CR[2] |= (1UL << 7U);
-    // enable the EN bit
-    DMA1->S6CR |= (1UL << 0U);
-
-    return 1U; // success
+    return 0U; // failure
 }
 
 int _write(int file, char *ptr, int len)

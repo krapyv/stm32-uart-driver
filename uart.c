@@ -76,6 +76,11 @@ void usart2_init()
     // enabling USART, RXNEIE, TE, RE
     USART2->CR[0] = cr1_config;
 
+    // wait for the idle frame (preamble) to be fully set
+    while (!(USART2->SR & (1 << 6)))
+    {
+    }
+
 #if (TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX)
     NVIC->ISER[1] = (1UL << 6U); // bit 6 is responsible for the interrupt position 38
 #endif

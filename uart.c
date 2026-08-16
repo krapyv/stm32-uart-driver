@@ -1,5 +1,17 @@
 #include "uart.h"
 #include <stdio.h>
+#include <stdint.h>
+
+uint8_t raw_tx_buffer[64];
+
+void DMA1_Stream6_IRQHandler(void)
+{
+    if (DMA1->HISR & (1U << 21U))
+    {
+        // since all the interruot clearing bits in the HIFCR/LIFCR are write-1-to-clear and the reserved bits has their reset values at 0, we can use direct write instead of RMW
+        DMA1->HIFCR = (1U << 21U);
+    }
+}
 
 #if ((TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX))
 RingBuffer_t rx_buffer;
@@ -42,6 +54,75 @@ void USART2_IRQHandler(void)
     }
 }
 #endif
+
+void usart2_dma_tx_init(void)
+{
+    // enable the DMA1 clock
+    RCC->AHB1ENR |= (1U << 21U);
+
+    /* ----- DMA configuration ----- */
+
+    // USART_TX is the stream 6 channel 4 of DMA1
+
+    // CHSEL for channel 4 is 100
+    // 100 = 2^2 = 4 = 0x4
+    DMA1->S6CR |= (0x4 << 25);
+
+    // MSIZE bits 14:13 = PSIZE bits 12:11 = byte (8-bit) = 00
+    // for clearing: 11 11 = 2^3 + 2^2 + 2^1 + 2^0 = 8 + 4 + 2 + 1 = 15 = 0xF
+    DMA1->S6CR &= ~(0xF << 11);
+
+    // MINC bit 10
+    // 1 - memory adress pointer is incremented after each data transfer
+    DMA1->S6CR |= (1U << 10U);
+
+    // PINC bit 9
+    // 0 - peripheral address pointer is fixed
+    DMA1->S6CR &= ~(1U << 9U);
+
+    // DIR[1:0] bits 7:6
+    // memory-to-peripheral - 01
+
+    // for clearing: 11 = 0x3
+    DMA1->S6CR &= ~(0x3 << 6);
+
+    // for setting: 01 = 0x1
+    DMA1->S6CR |= (0x1 << 6);
+
+    // Peripheral address register
+    DMA1->S6PAR = (uintptr_t)&USART2->DR;
+
+    // Memory 0 address register
+    DMA1->S6M0AR = (uintptr_t)raw_tx_buffer;
+
+    // 64 bytes = 0x40
+    DMA1->S6NDTR = 0x40;
+
+    // clear stale TC flag
+    // CTCIF6 = bit 21
+    DMA1->HIFCR = (1U << 21U);
+
+    // TCIE bit 4
+    // 1 - TC interrupt enabled
+    DMA1->S6CR |= (1 << 4);
+
+    // USART2 DMA transmitter enable
+    // CR[3] -> CR[0] is CR1, CR[1] is CR2 and CR[2] is CR3
+    USART2->CR[2] |= (1U << 7U);
+
+    // DMA1_Stream6 has the position of 17 in the vector table
+
+    // enable NVIC for DMA1_Stream6_IRQn
+    // uint32_t ISER[8] = 256 interrupts
+    // position 17 is ISER[0] bit 17
+
+    NVIC->ISER[0] = (1 << 17); // with NVIC registers we are using direct write, not RMW
+
+    // stream enable
+    DMA1->S6CR |= (1U << 0U);
+
+    /* ----- DMA configuration ----- */
+}
 
 void usart2_init()
 {

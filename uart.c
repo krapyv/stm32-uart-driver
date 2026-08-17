@@ -2,12 +2,14 @@
 #include <stdio.h>
 #include <stdint.h>
 
+volatile uint32_t tx_hit_counter = 0;
 uint8_t raw_tx_buffer[64];
 
 void DMA1_Stream6_IRQHandler(void)
 {
     if (DMA1->HISR & (1U << 21U))
     {
+        tx_hit_counter++;
         // since all the interruot clearing bits in the HIFCR/LIFCR are write-1-to-clear and the reserved bits has their reset values at 0, we can use direct write instead of RMW
         DMA1->HIFCR = (1U << 21U);
     }
@@ -124,7 +126,7 @@ void usart2_dma_tx_init(void)
     /* ----- DMA configuration ----- */
 }
 
-void usart2_init()
+void usart2_init(void)
 {
 #if ((TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX))
 
@@ -157,10 +159,7 @@ void usart2_init()
     // enabling USART, RXNEIE, TE, RE
     USART2->CR[0] = cr1_config;
 
-    // wait for the idle frame (preamble) to be fully set
-    while (!(USART2->SR & (1 << 6)))
-    {
-    }
+    // no idle-frame wait loop since the delay is a hardware-guaranteed behavior, not something the software needs to wait for
 
 #if (TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX)
     NVIC->ISER[1] = (1UL << 6U); // bit 6 is responsible for the interrupt position 38

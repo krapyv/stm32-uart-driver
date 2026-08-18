@@ -5,6 +5,7 @@
 volatile uint32_t tx_hit_counter = 0;
 uint8_t raw_tx_buffer[64];
 
+// TODO: the SR TC for low-power mode or half-duplex TX.
 void DMA1_Stream6_IRQHandler(void)
 {
     if (DMA1->HISR & (1U << 21U))

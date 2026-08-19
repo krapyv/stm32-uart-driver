@@ -2,9 +2,9 @@
 #define UART_H
 
 #include <stdint.h>
-#include "stm32f411.h"
-#include "core_cm4.h"
-#include "ring_buffer.h"
+#include "core/stm32f411.h"
+#include "core/core_cm4.h"
+#include "ring_buffer/ring_buffer.h"
 
 #ifdef USE_APP_CONFIG
 #include "app_config.h"

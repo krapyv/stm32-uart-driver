@@ -1,0 +1,6 @@
+[submodule "ring_buffer"]
+	path = ring_buffer
+	url = git@github.com:krapyv/stm32-ring-buffer.git
+[submodule "core"]
+	path = core
+	url = git@github.com:krapyv/stm32f411-core.git

@@ -193,6 +193,12 @@ void usart2_write_string(char *string, int len)
     }
 }
 
+void usart2_wait_tx_complete(void)
+{
+    while (!(USART2->SR & (1UL << 6U)))
+        ;
+}
+
 int _write(int file, char *ptr, int len)
 {
     usart2_write_string(ptr, len);

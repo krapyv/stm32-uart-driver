@@ -56,5 +56,6 @@ void usart2_init(void);
 void usart2_dma_tx_init(void);
 void usart2_write_char(char c);
 void usart2_write_string(char *string, int len);
+void usart2_wait_tx_complete(void);
 
 #endif

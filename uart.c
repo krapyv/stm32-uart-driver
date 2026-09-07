@@ -156,6 +156,8 @@ void usart2_init(void)
     cr1_config |= (1UL << 5U) | (1UL << 2U); // RXNEIE, RX
 #elif (TARGET_UART_MODE == UART_MODE_TX_RX)
     cr1_config |= (1U << 5UL) | (1UL << 3U) | (1UL << 2U);
+#elif (TARGET_UART_MODE == UART_MODE_TX_RX_POLLING)
+    cr1_config |= (1UL << 3U) | (1UL << 2U);
 #endif
     // enabling USART, RXNEIE, TE, RE
     USART2->CR[0] = cr1_config;

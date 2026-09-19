@@ -58,4 +58,8 @@ void usart2_write_char(char c);
 void usart2_write_string(char *string, int len);
 void usart2_wait_tx_complete(void);
 
+#if ((TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX))
+bool usart2_rx_pop(uint8_t *byte);
+#endif
+
 #endif

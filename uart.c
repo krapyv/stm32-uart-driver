@@ -56,6 +56,11 @@ void USART2_IRQHandler(void)
         }
     }
 }
+
+bool usart2_rx_pop(uint8_t *byte)
+{
+    return ring_buffer_pop(&rx_buffer, byte);
+}
 #endif
 
 void usart2_dma_tx_init(void)

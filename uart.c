@@ -189,7 +189,7 @@ void usart2_write_string(char *string, int len)
     // if len is negative (-1), fall back to standard null-terminator string tracking
 
     int i = 0;
-    while ((len >= 0U && i < len) || (len < 0U && string[i] != '\0'))
+    while ((len >= 0 && i < len) || (len < 0 && string[i] != '\0'))
     {
         if (string[i] == '\n')
         {

@@ -24,6 +24,7 @@ uint8_t raw_rx_storage[16];
 #if (TARGET_UART_MODE == UART_MODE_TX_ISR)
 RingBuffer_t tx_buffer;
 uint8_t raw_tx_storage[UART_TX_BUFFER_SIZE];
+uint32_t tx_drop_counter;
 #endif
 
 #if ((TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX) || (TARGET_UART_MODE == UART_MODE_TX_ISR))
@@ -69,7 +70,7 @@ void USART2_IRQHandler(void)
 #if (TARGET_UART_MODE == UART_MODE_TX_ISR)
     // TXE handler
     // TXE and TXEIE
-    if ((sr_snapshot & (1UL << 7U)) && (USART2->CR1 & (1UL << 7U)))
+    if ((sr_snapshot & (1UL << 7U)) && (USART2->CR[0] & (1UL << 7U)))
     {
         uint8_t byte;
 
@@ -84,7 +85,7 @@ void USART2_IRQHandler(void)
         {
             // the ring is empty
             // disable the TXEIE
-            USART2->CR1 &= ~(1UL << 7U);
+            USART2->CR[0] &= ~(1UL << 7U);
         }
     }
 #endif
@@ -99,9 +100,23 @@ bool usart2_rx_pop(uint8_t *byte)
 #endif
 
 #if (TARGET_UART_MODE == UART_MODE_TX_ISR)
-void usart2_tx_write(const uint8_t *data, uint16_t len, uint32_t *drop_counter)
+void usart2_tx_write(const uint8_t *data, uint16_t len)
 {
-    if (ring)
+    uint32_t free_space = ring_buffer_free_space(&tx_buffer);
+
+    if (free_space < len)
+    {
+        tx_drop_counter++;
+        return;
+    }
+
+    for (uint16_t i = 0; i < len; i++)
+    {
+        (void)ring_buffer_push(&tx_buffer, data[i]);
+    }
+
+    USART2->CR[0] |= (1UL << 7U); // enable TXEIE
+    return;
 }
 #endif
 

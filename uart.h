@@ -66,4 +66,8 @@ void usart2_wait_tx_complete(void);
 bool usart2_rx_pop(uint8_t *byte);
 #endif
 
+#if (TARGET_UART_MODE == UART_MODE_TX_ISR)
+void usart2_tx_write(const uint8_t *data, uint16_t len);
+#endif
+
 #endif

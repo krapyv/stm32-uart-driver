@@ -19,10 +19,19 @@ void DMA1_Stream6_IRQHandler(void)
 #if ((TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX))
 RingBuffer_t rx_buffer;
 uint8_t raw_rx_storage[16];
+#endif
 
+#if (TARGET_UART_MODE == UART_MODE_TX_ISR)
+RingBuffer_t tx_buffer;
+uint8_t raw_tx_storage[UART_TX_BUFFER_SIZE];
+#endif
+
+#if ((TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX) || (TARGET_UART_MODE == UART_MODE_TX_ISR))
 void USART2_IRQHandler(void)
 {
     uint32_t sr_snapshot = USART2->SR;
+
+#if ((TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX))
 
     // first of all, check whether the interrupt has been caused by the receiver
     // for this, check bit 5 RXNE of USART2_SR (if 1 - Received data is ready to be read, 0 - data is not received)
@@ -55,11 +64,44 @@ void USART2_IRQHandler(void)
             (void)clear; // to prevent the compiler from warning about this unused var
         }
     }
-}
+#endif
 
+#if (TARGET_UART_MODE == UART_MODE_TX_ISR)
+    // TXE handler
+    // TXE and TXEIE
+    if ((sr_snapshot & (1UL << 7U)) && (USART2->CR1 & (1UL << 7U)))
+    {
+        uint8_t byte;
+
+        bool pop_res = ring_buffer_pop(&tx_buffer, &byte);
+
+        if (pop_res)
+        {
+            // the ring is not empty
+            USART2->DR = byte;
+        }
+        else
+        {
+            // the ring is empty
+            // disable the TXEIE
+            USART2->CR1 &= ~(1UL << 7U);
+        }
+    }
+#endif
+}
+#endif
+
+#if ((TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX))
 bool usart2_rx_pop(uint8_t *byte)
 {
     return ring_buffer_pop(&rx_buffer, byte);
+}
+#endif
+
+#if (TARGET_UART_MODE == UART_MODE_TX_ISR)
+void usart2_tx_write(const uint8_t *data, uint16_t len, uint32_t *drop_counter)
+{
+    if (ring)
 }
 #endif
 
@@ -139,6 +181,9 @@ void usart2_init(void)
     // initialize the ring buffer
     (void)ring_buffer_init(&rx_buffer, raw_rx_storage, 16);
 #endif
+#if (TARGET_UART_MODE == UART_MODE_TX_ISR)
+    (void)ring_buffer_init(&tx_buffer, raw_tx_storage, UART_TX_BUFFER_SIZE);
+#endif
     USART2_ENABLE_CLK();
 
     // next, set the GPIOA_MODER to AF (10 or 0x2)
@@ -163,17 +208,20 @@ void usart2_init(void)
     cr1_config |= (1U << 5UL) | (1UL << 3U) | (1UL << 2U);
 #elif (TARGET_UART_MODE == UART_MODE_TX_RX_POLLING)
     cr1_config |= (1UL << 3U) | (1UL << 2U);
+#elif (TARGET_UART_MODE == UART_MODE_TX_ISR)
+    cr1_config |= (1UL << 3U); //  TE
 #endif
     // enabling USART, RXNEIE, TE, RE
     USART2->CR[0] = cr1_config;
 
     // no idle-frame wait loop since the delay is a hardware-guaranteed behavior, not something the software needs to wait for
 
-#if (TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX)
+#if ((TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX) || (TARGET_UART_MODE == UART_MODE_TX_ISR))
     NVIC->ISER[1] = (1UL << 6U); // bit 6 is responsible for the interrupt position 38
 #endif
 }
 
+#if (TARGET_UART_MODE != UART_MODE_TX_ISR)
 void usart2_write_char(char c)
 {
     while (!(USART2->SR & (1UL << 7U)))
@@ -211,3 +259,4 @@ int _write(int file, char *ptr, int len)
     usart2_write_string(ptr, len);
     return len;
 }
+#endif

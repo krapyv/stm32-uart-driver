@@ -15,6 +15,10 @@
 #define TARGET_UART_MODE 2U
 #endif
 
+#ifndef UART_TX_BUFFER_SIZE
+#define UART_TX_BUFFER_SIZE 32U
+#endif
+
 #ifndef TARGET_UART_BRR
 // for my 16 MHz processor clock: USARTDIV  = 8.6805 => Mantissa (integer part)  = 8 = 0x8
 // fraction = 0.6805 * 16 = 10.88 => rounded to 11 = 0xB

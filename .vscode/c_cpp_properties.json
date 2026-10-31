@@ -1,0 +1,14 @@
+{
+  "configurations": [
+    {
+      "name": "ARM-GCC",
+      "includePath": ["${workspaceFolder}/**"],
+      "defines": [],
+      "compilerPath": "/usr/bin/arm-none-eabi-gcc", // Path to your arm-none-eabi-gcc executable
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "gcc-arm"
+    }
+  ],
+  "version": 4
+}

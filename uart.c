@@ -222,7 +222,7 @@ void usart2_init(void)
 #elif (TARGET_UART_MODE == UART_MODE_TX_RX)
     cr1_config |= (1U << 5UL) | (1UL << 3U) | (1UL << 2U);
 #elif (TARGET_UART_MODE == UART_MODE_TX_RX_POLLING)
-    cr1_config |= (1UL << 3U) | (1UL << 2U);
+    cr1_config |= (1UL << 3U) | (1UL << 2U); // TE, RX
 #elif (TARGET_UART_MODE == UART_MODE_TX_ISR)
     cr1_config |= (1UL << 3U); //  TE
 #endif
@@ -271,6 +271,7 @@ void usart2_wait_tx_complete(void)
 
 int _write(int file, char *ptr, int len)
 {
+    (void)file;
     usart2_write_string(ptr, len);
     return len;
 }

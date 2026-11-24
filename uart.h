@@ -10,9 +10,15 @@
 #include "app_config.h"
 #endif
 
+#define UART_MODE_TX_ONLY 0U
+#define UART_MODE_RX_ONLY 1U
+#define UART_MODE_TX_RX 2U
+#define UART_MODE_TX_RX_POLLING 3U
+#define UART_MODE_TX_ISR 4U
+
 /* FALLBACK SAFE DEFAULTS */
 #ifndef TARGET_UART_MODE
-#define TARGET_UART_MODE 2U
+#define TARGET_UART_MODE UART_MODE_TX_RX
 #endif
 
 #ifndef UART_TX_BUFFER_SIZE

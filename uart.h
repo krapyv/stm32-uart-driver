@@ -74,6 +74,7 @@ bool usart2_rx_pop(uint8_t *byte);
 
 #if (TARGET_UART_MODE == UART_MODE_TX_ISR)
 void usart2_tx_write(const uint8_t *data, uint16_t len);
+uint32_t usart2_get_drop_counter(void);
 #endif
 
 #endif

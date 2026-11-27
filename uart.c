@@ -24,7 +24,13 @@ uint8_t raw_rx_storage[16];
 #if (TARGET_UART_MODE == UART_MODE_TX_ISR)
 RingBuffer_t tx_buffer;
 uint8_t raw_tx_storage[UART_TX_BUFFER_SIZE];
-uint32_t tx_drop_counter;
+static uint32_t tx_drop_counter;
+
+uint32_t usart2_get_drop_counter()
+{
+    return tx_drop_counter;
+}
+
 #endif
 
 #if ((TARGET_UART_MODE == UART_MODE_RX_ONLY) || (TARGET_UART_MODE == UART_MODE_TX_RX) || (TARGET_UART_MODE == UART_MODE_TX_ISR))
